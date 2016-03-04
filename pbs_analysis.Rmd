@@ -1,0 +1,68 @@
+---
+title: "pbs.rmd"
+author: "John Wilshire"
+date: "4 March 2016"
+output: html_document
+---
+R plyr tutorial 
+See this and the dataset on [github](https://github.com/johnWilshire/pbs).
+
+
+This is a small tutorial on how to use R to read a dataset from a collection of files using the plyr and data.table librarys. Using plyr we summarise the data and make some basic visualisations with ggplot2.
+
+Plyr provides an easy way to split up a list or a data frame or an array, apply a function and then combine results. You can install it by running `install.packages("plyr")` in your R console.
+You can also read the docs by running `??plyr`
+
+```{R}
+# load some librarys
+library(ggplot2)
+library(plyr)
+library(data.table)
+```
+Read in the data:
+```{R}
+pbs_atc <- ldply(list.files("data/", full.names = TRUE), fread)
+```
+This apply's the function `fread` to the list of files in the the directory `data` and combines the individual datasets into one dataset we call `pbs_atc`.
+
+There are some classifications that don't have a lot of spending or don't have clear names so we group together to make the visualisation better.
+
+```{R}
+colnames(pbs_atc) <- tolower(gsub("[.]*", "", colnames(pbs_atc)))
+
+pbs_atc$atc_classification[pbs_atc$atc_classification == "Various +"] <- "Other"
+pbs_atc$atc_classification[pbs_atc$atc_classification == "Other ++"] <- "Other"
+pbs_atc$atc_classification[pbs_atc$atc_classification == "Anti-Parasitic Products"] <- "Other"
+```
+Sumarising with plyr:
+```{R}
+national <- ddply(pbs_atc, c("year", "atc_classification"),  summarise,
+      total_benefits_billions = sum(benefits / 1e9),
+      total_services_billions = sum(services / 1e9)
+)
+```
+The function ddply splits up the dataframe `pbs_atc` based off of the columns `year` and `atc_classification` it then groups these subsets into new dataframes and applys the function `summarise` to each to each of them. 
+
+The additional arguments are passed onto `summarise` which creates two new columns for the sums.
+
+ddply then combines the results into a dataframe and we save it as `national`
+
+
+*Plotting
+```{R}
+ggplot(national, aes(x = year, y = total_benefits_billions)) +
+  geom_bar(stat = "identity", aes( fill = atc_classification)) +
+  ggtitle("PBS Benefits Paid") + 
+  xlab("Year") + 
+  ylab("Billions") + 
+  guides(fill = guide_legend(reverse=TRUE)) + 
+  scale_fill_discrete(name="ATC Classification")
+
+ggplot(national, aes(x = year, y = total_services_billions)) +
+  geom_bar(stat = "identity", aes( fill = atc_classification)) +
+  ggtitle("PBS Services Paid") + 
+  xlab("Year") + 
+  ylab("Spending in Billions") +
+  guides(fill = guide_legend(reverse=TRUE)) + 
+  scale_fill_discrete(name="ATC Classification")
+```
