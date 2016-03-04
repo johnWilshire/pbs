@@ -7,13 +7,10 @@ library(data.table)
 # load the dataset from multiple files in the directory "data"
 pbs_atc <- ldply(list.files("data/", full.names = TRUE), fread)
 
-summary(pbs_atc)
-
 # clean up the names
 colnames(pbs_atc) <- tolower(gsub("[.]*", "", colnames(pbs_atc)))
 
 pbs_atc$atc_classification[pbs_atc$atc_classification == "Various +"] <- "Other"
-pbs_atc$atc_classification[pbs_atc$atc_classification == "Other ++"] <- "Other"
 pbs_atc$atc_classification[pbs_atc$atc_classification == "Other ++"] <- "Other"
 pbs_atc$atc_classification[pbs_atc$atc_classification == "Anti-Parasitic Products"] <- "Other"
 
